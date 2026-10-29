@@ -9,7 +9,7 @@
 
 create table if not exists public.registros (
   negocio_id  uuid        not null default auth.uid() references auth.users (id) on delete cascade,
-  tipo        text        not null check (tipo in ('config', 'productos', 'ventas', 'reparaciones')),
+  tipo        text        not null check (tipo in ('config', 'productos', 'ventas', 'reparaciones', 'cajas', 'gastos')),
   id          text        not null,
   datos       jsonb,
   eliminado   boolean     not null default false,
@@ -95,3 +95,22 @@ from public.ventas_detalle
 where not anulada
 group by 1, 2
 order by 2 desc;
+
+-- Historial de cierres para revisar desde el panel de Supabase
+create or replace view public.cierres_caja with (security_invoker = on) as
+select
+  negocio_id,
+  id,
+  (datos ->> 'numero')::int                          as numero,
+  (datos ->> 'apertura')::timestamptz                as apertura,
+  (datos ->> 'cierre')::timestamptz                  as cierre,
+  (datos ->> 'montoInicial')::numeric                as caja_inicial,
+  (datos -> 'resumen' ->> 'total')::numeric          as vendido,
+  (datos -> 'resumen' ->> 'gastosTotal')::numeric    as gastos,
+  (datos -> 'resumen' ->> 'efectivoEsperado')::numeric as efectivo_esperado,
+  (datos ->> 'efectivoContado')::numeric             as efectivo_contado,
+  (datos ->> 'diferencia')::numeric                  as diferencia,
+  nullif(datos ->> 'nota', '')                       as nota
+from public.registros
+where tipo = 'cajas' and not eliminado and datos ->> 'estado' = 'cerrada'
+order by apertura desc;

@@ -1,6 +1,7 @@
-import { ShoppingCart, Wrench, PackagePlus, AlertTriangle, TrendingUp, Wallet, Receipt, ChevronRight, ShieldCheck } from 'lucide-react'
+import { ShoppingCart, Wrench, PackagePlus, AlertTriangle, TrendingUp, Wallet, Receipt, ChevronRight, ShieldCheck, LockKeyhole, Unlock } from 'lucide-react'
 import { useStore, codigoRep } from '../store'
 import { diasDesde } from '../pwa'
+import { cajaAbierta, resumenCaja } from '../caja'
 import { dinero, mismoDia, fechaLarga, gananciaVenta, desdeHace } from '../utils'
 
 export default function Inicio({ ir }) {
@@ -33,6 +34,8 @@ export default function Inicio({ ir }) {
   const top = Object.entries(conteo).sort((a, b) => b[1] - a[1]).slice(0, 5)
   const diasRespaldo = diasDesde(data.ultimoRespaldo)
   const pedirRespaldo = ventas.length > 0 && (diasRespaldo == null || diasRespaldo > 7)
+  const caja = cajaAbierta(data.cajas)
+  const efectivoCaja = caja ? resumenCaja(caja, data).efectivoEsperado : 0
 
   return (
     <div className="pagina">
@@ -53,6 +56,16 @@ export default function Inicio({ ir }) {
           <ChevronRight size={18} />
         </button>
       )}
+
+      <button className={`aviso-caja-inicio ${caja ? 'abierta' : 'cerrada'}`} onClick={() => ir('ventas', 'caja')}>
+        {caja ? <Wallet size={20} /> : <Unlock size={20} />}
+        <span>
+          {caja
+            ? <><b>Caja abierta</b> · efectivo en caja: <b>{dinero(efectivoCaja, m)}</b></>
+            : <><b>La caja está cerrada.</b> Ábrela al empezar el día para cuadrar el efectivo al final.</>}
+        </span>
+        <span className="aviso-caja-accion">{caja ? <><LockKeyhole size={15} /> Cerrar caja</> : <><Unlock size={15} /> Abrir caja</>}</span>
+      </button>
 
       <div className="accesos">
         <button className="acceso principal" onClick={() => ir('vender')}>

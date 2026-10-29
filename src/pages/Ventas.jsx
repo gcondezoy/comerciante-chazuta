@@ -1,9 +1,11 @@
-import { useState } from 'react'
-import { Wrench, ShoppingBag } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Wrench, ShoppingBag, Wallet, ListOrdered } from 'lucide-react'
 import { useStore, codigoVenta } from '../store'
 import { dinero, fechaCorta, hora, gananciaVenta, desdeHace, METODOS_PAGO } from '../utils'
+import { cajaAbierta } from '../caja'
 import Modal from '../components/Modal'
 import Ticket from '../components/Ticket'
+import Caja from './Caja'
 
 const PERIODOS = [
   { id: 'hoy', label: 'Hoy', desde: () => desdeHace(0) },
@@ -12,7 +14,38 @@ const PERIODOS = [
   { id: 'todo', label: 'Todo', desde: () => new Date(0) },
 ]
 
-export default function Ventas() {
+export default function Ventas({ accion, limpiarAccion }) {
+  const { data } = useStore()
+  const [pestana, setPestana] = useState('caja')
+  const abierta = cajaAbierta(data.cajas)
+
+  useEffect(() => {
+    if (accion === 'caja' || accion === 'historial') setPestana(accion)
+    if (accion) limpiarAccion()
+  }, [accion])
+
+  return (
+    <div className="pagina">
+      <div className="pagina-cab">
+        <div>
+          <p className="sobretitulo">{abierta ? `Caja N° ${abierta.numero} abierta` : 'Caja cerrada'}</p>
+          <h1>Caja y ventas</h1>
+        </div>
+      </div>
+      <div className="pestanas" role="tablist">
+        <button role="tab" aria-selected={pestana === 'caja'} className={pestana === 'caja' ? 'activo' : ''} onClick={() => setPestana('caja')}>
+          <Wallet size={17} /> Caja del día
+        </button>
+        <button role="tab" aria-selected={pestana === 'historial'} className={pestana === 'historial' ? 'activo' : ''} onClick={() => setPestana('historial')}>
+          <ListOrdered size={17} /> Historial de ventas
+        </button>
+      </div>
+      {pestana === 'caja' ? <Caja /> : <HistorialVentas />}
+    </div>
+  )
+}
+
+function HistorialVentas() {
   const { data, anularVenta } = useStore()
   const { ventas, negocio } = data
   const m = negocio.moneda
@@ -44,14 +77,7 @@ export default function Ventas() {
   const actual = detalle && ventas.find((v) => v.id === detalle.id)
 
   return (
-    <div className="pagina">
-      <div className="pagina-cab">
-        <div>
-          <p className="sobretitulo">Caja y movimientos</p>
-          <h1>Ventas</h1>
-        </div>
-      </div>
-
+    <>
       <div className="segmentado">
         {PERIODOS.map((p) => (
           <button key={p.id} className={periodo === p.id ? 'activo' : ''} onClick={() => setPeriodo(p.id)}>{p.label}</button>
@@ -120,6 +146,6 @@ export default function Ventas() {
           )}
         </Modal>
       )}
-    </div>
+    </>
   )
 }

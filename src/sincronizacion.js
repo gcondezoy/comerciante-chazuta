@@ -36,7 +36,16 @@ const ordenar = (d) => ({
   productos: [...d.productos].sort((a, b) => a.nombre.localeCompare(b.nombre)),
   ventas: [...d.ventas].sort((a, b) => ms(b.fecha) - ms(a.fecha)),
   reparaciones: [...d.reparaciones].sort((a, b) => b.numero - a.numero),
+  cajas: [...d.cajas].sort((a, b) => ms(b.apertura) - ms(a.apertura)),
+  gastos: [...d.gastos].sort((a, b) => ms(b.fecha) - ms(a.fecha)),
 })
+
+// Los contadores solo crecen: así dos equipos nunca repiten un número de venta o de caja
+const unirContadores = (local, remoto = {}) => {
+  const r = { ...local }
+  for (const [k, v] of Object.entries(remoto)) r[k] = Math.max(r[k] || 0, v || 0)
+  return r
+}
 
 function construirDesdeNube(filas, local) {
   const d = datosVacios(local.negocio)
@@ -147,10 +156,7 @@ export function useSincronizacion(data, setData) {
         if (f.tipo === 'config') {
           if (f.eliminado || !f.datos || iguales(registroConfig(nd), f.datos)) continue
           const negocio = { ...nd.negocio, ...f.datos.negocio }
-          const contadores = {
-            venta: Math.max(nd.contadores.venta, f.datos.contadores?.venta || 0),
-            reparacion: Math.max(nd.contadores.reparacion, f.datos.contadores?.reparacion || 0),
-          }
+          const contadores = unirContadores(nd.contadores, f.datos.contadores)
           remotos.current.add(negocio)
           remotos.current.add(contadores)
           respaldoRemoto.current = f.datos.ultimoRespaldo || nd.ultimoRespaldo
@@ -199,15 +205,28 @@ export function useSincronizacion(data, setData) {
             : pend[clave].eliminado ? null : (d[tipo]?.find((x) => x.id === id) ?? null)
           return { negocio_id: c.userId, tipo, id, datos, eliminado: !datos, actualizado: pend[clave].t }
         })
-        await subir(filas)
+        // Se sube por tipo: si un tipo falla (ej. la tabla aún no lo acepta), los demás igual llegan
+        const subidas = []
+        let primerError = null
+        for (const tipo of new Set(filas.map((f) => f.tipo))) {
+          const grupo = filas.filter((f) => f.tipo === tipo)
+          try {
+            await subir(grupo)
+            subidas.push(...grupo.map((f) => `${f.tipo}/${f.id}`))
+          } catch (e) {
+            if (esErrorDeSesion(e) || sinRed(e)) throw e
+            primerError = primerError || e
+          }
+        }
         // Solo se quitan de la cola si no volvieron a cambiar mientras subían
         const limpiar = (p) => {
           const n = { ...p }
-          for (const clave of claves) if (n[clave]?.t === pend[clave].t) delete n[clave]
+          for (const clave of subidas) if (n[clave]?.t === pend[clave].t) delete n[clave]
           return n
         }
         pendRef.current = limpiar(pendRef.current)
         setPendientes(limpiar)
+        if (primerError) throw primerError
       }
 
       // 2. Bajar lo que cambió en la nube (con un pequeño solape por seguridad)

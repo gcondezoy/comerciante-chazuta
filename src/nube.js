@@ -11,7 +11,7 @@ export const supabase = nubeConfigurada
   ? createClient(url, anonKey, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'ventas-chazuta-auth' } })
   : null
 
-export const COLECCIONES = ['productos', 'ventas', 'reparaciones']
+export const COLECCIONES = ['productos', 'ventas', 'reparaciones', 'cajas', 'gastos']
 const TABLA = 'registros'
 const LOTE = 500
 

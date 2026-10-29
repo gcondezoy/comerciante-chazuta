@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { Search, Plus, Minus, Trash2, ShoppingCart, ChevronUp, X, PenLine } from 'lucide-react'
+import { Search, Plus, Minus, Trash2, ShoppingCart, ChevronUp, X, PenLine, Unlock } from 'lucide-react'
 import { useStore } from '../store'
+import { cajaAbierta } from '../caja'
 import { dinero, totalVenta, colorCategoria, METODOS_PAGO, uid } from '../utils'
 import Modal from '../components/Modal'
 import Ticket from '../components/Ticket'
 
-export default function Vender() {
+export default function Vender({ ir }) {
   const { data, registrarVenta } = useStore()
+  const sinCaja = !cajaAbierta(data.cajas)
   const { productos, negocio } = data
   const m = negocio.moneda
 
@@ -72,6 +74,13 @@ export default function Vender() {
             <PenLine size={16} /> Monto libre
           </button>
         </div>
+        {sinCaja && (
+          <button className="aviso-caja-vender" onClick={() => ir('ventas', 'caja')}>
+            <Unlock size={17} />
+            <span>La caja está cerrada. Puedes vender igual, pero ábrela para cuadrar el efectivo al final del día.</span>
+            <b>Abrir caja</b>
+          </button>
+        )}
         <label className="buscador">
           <Search size={18} />
           <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar producto, marca o IMEI…" />

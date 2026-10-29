@@ -110,6 +110,34 @@ const reparacionesDemo = () => [
   },
 ]
 
+// Hora fija de un día pasado; para hoy nunca devuelve una hora en el futuro
+const aLas = (dias, horas, minutos = 0) => {
+  const f = new Date()
+  f.setDate(f.getDate() - dias)
+  f.setHours(horas, minutos, 0, 0)
+  if (dias === 0 && f > new Date(Date.now() - 90 * 60000)) f.setTime(Date.now() - (horas < 8 ? 180 : 90) * 60000)
+  return f.toISOString()
+}
+
+// Cierres de días anteriores y la caja de hoy abierta, para que la demo muestre el flujo
+const cajasDemo = () => [
+  { id: uid(), numero: 3, apertura: aLas(0, 7, 30), montoInicial: 100, estado: 'abierta' },
+  {
+    id: uid(), numero: 2, apertura: aLas(1, 7, 25), cierre: aLas(1, 20, 10), montoInicial: 100, estado: 'cerrada',
+    efectivoContado: 412.5, diferencia: -2.5, nota: '',
+    resumen: { ventas: 7, total: 395, porMetodo: { Efectivo: 330, Yape: 65, Plin: 0, Tarjeta: 0 }, adelantos: 0, gastosEfectivo: 15, gastosTotal: 15, ganancia: 98.4, efectivoEsperado: 415 },
+  },
+  {
+    id: uid(), numero: 1, apertura: aLas(2, 7, 40), cierre: aLas(2, 19, 55), montoInicial: 80, estado: 'cerrada',
+    efectivoContado: 386, diferencia: 0, nota: '',
+    resumen: { ventas: 6, total: 342, porMetodo: { Efectivo: 306, Yape: 36, Plin: 0, Tarjeta: 0 }, adelantos: 0, gastosEfectivo: 0, gastosTotal: 0, ganancia: 104.2, efectivoEsperado: 386 },
+  },
+]
+
+const gastosDemo = () => [
+  { id: uid(), fecha: aLas(0, 9, 15), concepto: 'Flete de mercadería desde Tarapoto', monto: 15, metodo: 'Efectivo' },
+]
+
 export const datosDemo = () => {
   const productos = productosDemo()
   const ventas = ventasDemo(productos)
@@ -119,7 +147,9 @@ export const datosDemo = () => {
     productos,
     ventas,
     reparaciones: reparacionesDemo(),
-    contadores: { venta: ventas.length, reparacion: 4 },
+    cajas: cajasDemo(),
+    gastos: gastosDemo(),
+    contadores: { venta: ventas.length, reparacion: 4, caja: 3 },
   }
 }
 
@@ -129,5 +159,7 @@ export const datosVacios = (negocio) => ({
   productos: [],
   ventas: [],
   reparaciones: [],
-  contadores: { venta: 0, reparacion: 0 },
+  cajas: [],
+  gastos: [],
+  contadores: { venta: 0, reparacion: 0, caja: 0 },
 })

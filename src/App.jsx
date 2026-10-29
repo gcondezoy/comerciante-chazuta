@@ -16,7 +16,7 @@ const SECCIONES = [
   { id: 'vender', label: 'Vender', icono: ShoppingCart, Pagina: Vender },
   { id: 'inventario', label: 'Inventario', icono: Package, Pagina: Inventario },
   { id: 'reparaciones', label: 'Reparaciones', corto: 'Reparar', icono: Wrench, Pagina: Reparaciones, modulo: 'reparaciones' },
-  { id: 'ventas', label: 'Ventas', icono: Receipt, Pagina: Ventas },
+  { id: 'ventas', label: 'Caja y ventas', corto: 'Caja', icono: Receipt, Pagina: Ventas },
   { id: 'ajustes', label: 'Ajustes', icono: Settings, Pagina: Ajustes, soloEscritorio: true },
 ]
 

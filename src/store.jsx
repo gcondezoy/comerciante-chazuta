@@ -8,10 +8,18 @@ import { useSincronizacion } from './sincronizacion'
 const CLAVE = 'ventas-chazuta-v1'
 const Ctx = createContext(null)
 
+// Completa lo que falte en datos guardados con versiones anteriores del sistema
+export const normalizar = (d) => ({
+  ...d,
+  cajas: d.cajas || [],
+  gastos: d.gastos || [],
+  contadores: { venta: 0, reparacion: 0, caja: 0, ...d.contadores },
+})
+
 function cargar() {
   try {
     const guardado = localStorage.getItem(CLAVE)
-    if (guardado) return JSON.parse(guardado)
+    if (guardado) return normalizar(JSON.parse(guardado))
   } catch { /* sin almacenamiento disponible */ }
   return datosDemo()
 }
@@ -112,11 +120,36 @@ export function StoreProvider({ children }) {
       return venta
     },
 
+    // Caja: solo puede haber una abierta a la vez
+    abrirCaja: (montoInicial) => setData((d) => {
+      if (d.cajas.some((c) => c.estado === 'abierta')) return d
+      const caja = { id: uid(), numero: d.contadores.caja + 1, apertura: new Date().toISOString(), montoInicial, estado: 'abierta' }
+      return { ...d, contadores: { ...d.contadores, caja: d.contadores.caja + 1 }, cajas: [caja, ...d.cajas] }
+    }),
+
+    // Se guarda una foto del resumen para que el historial no cambie si luego se anula algo
+    cerrarCaja: (id, { efectivoContado, nota, resumen }) => {
+      const cierre = new Date().toISOString()
+      setData((d) => ({
+        ...d,
+        cajas: d.cajas.map((c) => (c.id === id
+          ? { ...c, estado: 'cerrada', cierre, efectivoContado, nota, resumen, diferencia: efectivoContado - resumen.efectivoEsperado }
+          : c)),
+      }))
+      return cierre
+    },
+
+    registrarGasto: ({ concepto, monto, metodo }) => setData((d) => ({
+      ...d, gastos: [{ id: uid(), fecha: new Date().toISOString(), concepto, monto, metodo }, ...d.gastos],
+    })),
+
+    eliminarGasto: (id) => setData((d) => ({ ...d, gastos: d.gastos.filter((g) => g.id !== id) })),
+
     marcarRespaldo: () => setData((d) => ({ ...d, ultimoRespaldo: new Date().toISOString() })),
 
     restaurarDemo: () => setData(datosDemo()),
     empezarVacio: () => setData((d) => datosVacios(d.negocio)),
-    importar: (json) => setData(json),
+    importar: (json) => setData(normalizar(json)),
   }), [data, nube])
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>
