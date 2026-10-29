@@ -86,7 +86,11 @@ function Sistema({ data, nube }) {
             <button className="btn-instalar" onClick={instalar}><Download size={16} /> Instalar en este equipo</button>
           )}
           <EstadoNube />
-          <p>{nube.cuenta ? `Cuenta: ${nube.cuenta.email}` : 'Funciona sin internet. Los datos se guardan en este equipo.'}</p>
+          {nube.cuenta ? (
+            <p>Cuenta:<span className="lateral-email" title={nube.cuenta.email}>{nube.cuenta.email}</span></p>
+          ) : (
+            <p>Funciona sin internet. Los datos se guardan en este equipo.</p>
+          )}
         </div>
       </aside>
 
